@@ -7,16 +7,21 @@ const int axisY = A1;
 const int buttonPin = 7; // i still have no clue what const does tbh
 int floor_n = 1;
 int tick = 0;
-int delay_amt = 300;
+int delay_amt = 250;
 int resources = 0;
 int health = 10;
 int light_lvl = 0; // im gon make the maximum light lvl of 4 or smth
 int position = 48; // because of me beign dummah we got the system if u go forward position is getting substracted (edit: i changed it bc everything else could break)
 int valX, valY, valButton = 0;
-String items = "aT #";
+String items = "aT #HBW";
 String top = "I      T      T      T   Y   T  Y YT TT TF TTIFTTITY  a  YT  F T T TT TT TTTT Y  TT Y TY    Y TT        Y  T     H        T    T TY  T T  YT ";
+String top2 = "WWWWWWWW     TYTYTYTa   TYTYTYTa   TYTYTYT a_____a TYTYTYT   aTYTYTYT   aTYTYTYT     WWW ";
 bool dead = false;
 bool customPlr = false;
+bool transition = false;
+String map_printable;
+String transit_msg1 = "going up";
+String transit_msg2 = "the ladder";
 
 uint8_t customChar[8] = {0x00,0x00,0x00,0x11,0x00,0x15,0x0A,0x00};
 String crafting[3] = {"lamp","heal","wall"};
@@ -33,13 +38,18 @@ void setup() {
   //lcd.print("Hello!!!"); i forgot abt this
 }
 
-void init_movment() {
+void init_movment(String map_printable) {
   valX = analogRead(axisX);
   if (valX <= 60) {
+      if (map_printable[8] != items[6]) {
       position += 1;
+    }
   }
   else if (valX >= 560) {
+    if (map_printable[6] != items[6]) {
       position -= 1;
+    }
+      
   }
 }
 
@@ -49,22 +59,38 @@ void init_action(String map_printable) {
   if (valButton == 1) {
     if (map_printable[7] == items[1]) {
       if (resources < 9) {
-        top[position + 7] = ' ';
+        if (floor_n == 1) {top[position + 7] = ' ';}
+        else if (floor_n == 2) {top2[position + 7] = ' ';}
         resources += 1;
       }
     }
     else if (map_printable[7] == items[3]) {
       if (resources < 9) {
-        top[position + 7] = ' ';
-        resources += 1;
+        if (floor_n == 1) {top[position + 7] = ' ';}
+        else if (floor_n == 2) {top2[position + 7] = ' ';}
+        resources += 2;
       }
+    }
+    else if (map_printable[7] == items[0]) {
+      if (resources < 9) {
+        if (floor_n == 1) {top[position + 7] = ' ';}
+        else if (floor_n == 2) {top2[position + 7] = ' ';}
+        resources += 3;
+      }
+    }
+    else if (map_printable[7] == items[4]) {
+      transition = true;
+      position = 40;
+      floor_n = 2;
+
     }
   }
   if (valY >= 560) {
     if (map_printable[7] == items[2]) {
       if (curCraftingIndex == 0) {
         if (resources >= 3) {
-          top[position + 7] = 'a';
+          if (floor_n == 1) {top[position + 7] = 'a';}
+          else if (floor_n == 2) {top2[position + 7] = 'a';}
           resources -= 3;
         }
       }
@@ -76,7 +102,8 @@ void init_action(String map_printable) {
       }
       else if (curCraftingIndex == 2) {
         if (resources >= 4) {
-          top[position + 7] = '#';
+          if (floor_n == 1) {top[position + 7] = '#';}
+          else if (floor_n == 2) {top2[position + 7] = '#';}
           resources -= 4;
         }
       }
@@ -107,6 +134,13 @@ void map_drawing(String floor, String map_printable) {
     lcd.write(0xff);
   }
   
+}
+
+void draw_transit(String msgtop, String msgdown, int amt1, int amt2) {
+  lcd.setCursor(amt1, 0);
+  lcd.print(msgtop);
+  lcd.setCursor(amt2, 1);
+  lcd.print(msgdown);
 }
 
 void light_src(String map_printable) {
@@ -160,24 +194,46 @@ void health_capping(int maximum) {
 
 void loop() {
   // MAP PIECES!!!!!!!!!!!!!!!!!!!!!!
-  String floor = String(health) + "#" + String(light_lvl) + "#" + String(resources) + "#" + curCraftingItem + "#######";
-  String map_printable = top.substring(position, 15 + position); // cuts map so u see only the part the position is on (sry for bad english)
+  String floor = String(health) + "#" + String(light_lvl) + "#" + String(resources) + "#" + curCraftingItem + "##" + String(floor_n) + "####";
+  if (floor_n == 1) { // cuts map so u see only the part the position is on (sry for bad english)  
+    map_printable = top.substring(position, 15 + position);
+  }
+  else if (floor_n == 2) {
+    map_printable = top2.substring(position, 15 + position);
+  }
+  
 
   lcd.clear();
   tick_system(10, 1);
-
-  map_drawing(floor, map_printable);
-
-  light_src(map_printable);
+  if (dead == true) {
+    transition = true;
+    position = 48;
+    health = 10;
+    floor_n = 1;
+    resources = 0;
+  }
+  if (transition == false) {
+    map_drawing(floor, map_printable);
+    light_src(map_printable);
+    if (dead == false) {
+      check_dead();
+      health_capping(10);
+      if (floor_n == 1) {dark_hurts(10);}
+      init_movment(map_printable);
+      init_action(map_printable);
+    }
+  }
+  else {
+    draw_transit(transit_msg1, transit_msg2, 4, 3);
+    delay(2000);
+    transition = false;
+    if (dead == true) {
+      dead = false;
+    }
+  }
   
 
   delay(delay_amt);
-  if (dead == false) {
-    check_dead();
-    health_capping(10);
-    dark_hurts(10);
-    init_movment(); // movement is after delay bc it works better for some reason
-    init_action(map_printable);
-  }
+  
   
 }
