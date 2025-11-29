@@ -4,6 +4,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 const int axisX = A0;
 const int axisY = A1;
+const int buzzer = 12;
 const int buttonPin = 7; // i still have no clue what const does tbh
 int floor_n = 1;
 int tick = 0;
@@ -13,9 +14,10 @@ int health = 10;
 int light_lvl = 0; // im gon make the maximum light lvl of 4 or smth
 int position = 48; // because of me beign dummah we got the system if u go forward position is getting substracted (edit: i changed it bc everything else could break)
 int valX, valY, valButton = 0;
-String items = "aT #HBW";
+String items = "aT #HBWL";
 String top = "I      T      T      T   Y   T  Y YT TT TF TTIFTTITY  a  YT  F T T TT TT TTTT Y  TT Y TY    Y TT        Y  T     H        T    T TY  T T  YT ";
-String top2 = "WWWWWWWW     TYTYTYTa   TYTYTYTa   TYTYTYT a_____a TYTYTYT   aTYTYTYT   aTYTYTYT     WWW ";
+String top2 = "WWWWWWWW     TYTYTYTa   TYTYTYTa L TYTYTYT a_____a TYTYTYT   aTYTYTYT   aTYTYTYT     WM    ";
+int lever_action = 85;
 bool dead = false;
 bool customPlr = false;
 bool transition = false;
@@ -31,6 +33,7 @@ String curCraftingItem = crafting[curCraftingIndex];
 void setup() {
   Serial.begin(9600);
   pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(buzzer, OUTPUT);
   lcd.init();
   lcd.createChar(1, customChar);
   lcd.backlight();
@@ -61,6 +64,7 @@ void init_action(String map_printable) {
       if (resources < 9) {
         if (floor_n == 1) {top[position + 7] = ' ';}
         else if (floor_n == 2) {top2[position + 7] = ' ';}
+        tone(buzzer, 5, 300);
         resources += 1;
       }
     }
@@ -68,6 +72,7 @@ void init_action(String map_printable) {
       if (resources < 9) {
         if (floor_n == 1) {top[position + 7] = ' ';}
         else if (floor_n == 2) {top2[position + 7] = ' ';}
+        tone(buzzer, 5, 300);
         resources += 2;
       }
     }
@@ -75,6 +80,7 @@ void init_action(String map_printable) {
       if (resources < 9) {
         if (floor_n == 1) {top[position + 7] = ' ';}
         else if (floor_n == 2) {top2[position + 7] = ' ';}
+        tone(buzzer, 5, 300);
         resources += 3;
       }
     }
@@ -84,6 +90,16 @@ void init_action(String map_printable) {
       floor_n = 2;
 
     }
+    if (map_printable[7] == items[7]) {
+      if (floor_n == 2) {
+        top2[position + 7] = 'l';
+        tone(buzzer, 5, 300);
+        tone(buzzer, 5, 300);
+        top2[lever_action] = ' ';
+      }
+      
+      
+    }
   }
   if (valY >= 560) {
     if (map_printable[7] == items[2]) {
@@ -91,17 +107,20 @@ void init_action(String map_printable) {
         if (resources >= 3) {
           if (floor_n == 1) {top[position + 7] = 'a';}
           else if (floor_n == 2) {top2[position + 7] = 'a';}
+          tone(buzzer, 5, 300);
           resources -= 3;
         }
       }
       else if (curCraftingIndex == 1) {
         if (resources >= 2) {
+          tone(buzzer, 500, 100);
           health += 2;
           resources -= 2;
         }
       }
       else if (curCraftingIndex == 2) {
         if (resources >= 4) {
+          tone(buzzer, 5, 300);
           if (floor_n == 1) {top[position + 7] = '#';}
           else if (floor_n == 2) {top2[position + 7] = '#';}
           resources -= 4;
@@ -177,6 +196,7 @@ void tick_system(int maximum, int step) {
 void dark_hurts(int dpt) {
   if (tick == dpt and light_lvl == 0) {
     health -= 1;
+    tone(buzzer, 400, 50);
   }
 }
 
